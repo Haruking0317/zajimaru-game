@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101b24">
+  <title>ひとりぼっちの野営地 | SURVIVE THE WILD</title>
+  <style>
+    :root{color-scheme:dark;--cream:#f1ead5;--muted:#a9ad9e;--lime:#c5dc83;--orange:#ff9866;--panel:rgba(19,29,34,.88)}
+    *{box-sizing:border-box}
+    body{margin:0;min-width:320px;background:#101b24;color:var(--cream);font-family:"Yu Gothic","Meiryo",sans-serif;overflow:hidden}
+    button{font:inherit}
+    .game{position:relative;width:100vw;height:100svh;min-height:540px;overflow:hidden;background:#101b24}
+    canvas{display:block;width:100%;height:100%}
+    .grain{position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E")}
+    .topbar{position:absolute;left:clamp(16px,4vw,56px);right:clamp(16px,4vw,56px);top:24px;display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none}
+    .brand{font:500 10px "DM Mono",monospace;letter-spacing:.28em;color:var(--lime);text-transform:uppercase}
+    .brand strong{display:block;margin-top:5px;font:900 21px "Yu Gothic","Meiryo",sans-serif;letter-spacing:.12em;color:var(--cream)}
+    .daybox{text-align:right;font:11px "DM Mono",monospace;letter-spacing:.08em}
+    .daybox b{display:block;margin-bottom:6px;font-size:13px;color:var(--cream)}
+    .clock{color:var(--lime)}
+    .hud{position:absolute;top:102px;left:clamp(16px,4vw,56px);display:flex;gap:9px;pointer-events:none}
+    .meter{width:132px;padding:10px 12px;background:var(--panel);border:1px solid #d9d7bd22;border-radius:4px}
+    .meter-label{display:flex;justify-content:space-between;font:10px "DM Mono",monospace;color:var(--muted);letter-spacing:.1em}
+    .meter-label span:last-child{color:var(--cream)}
+    .bar{height:4px;margin-top:8px;background:#ffffff1a;border-radius:5px;overflow:hidden}
+    .bar i{display:block;height:100%;width:100%;background:var(--lime);transition:width .2s}
+    .meter.hp .bar i{background:var(--orange)}
+    .inventory{position:absolute;top:102px;right:clamp(16px,4vw,56px);display:flex;gap:7px;pointer-events:none}
+    .item{min-width:69px;padding:9px 11px;text-align:center;background:var(--panel);border:1px solid #d9d7bd22;border-radius:4px}
+    .item span{display:block;font:9px "DM Mono",monospace;color:var(--muted);letter-spacing:.08em}
+    .item b{display:block;margin-top:3px;font:500 15px "DM Mono",monospace}
+    .inventory-toggle{position:absolute;top:153px;right:clamp(16px,4vw,56px);padding:6px 9px;border:1px solid #d9d7bd3b;border-radius:3px;background:var(--panel);color:var(--cream);font-size:10px;letter-spacing:.06em;cursor:pointer}
+    .inventory-toggle:hover{border-color:var(--lime);color:var(--lime)}
+    .inventory-panel{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:18px;background:#081015a8}
+    .inventory-card{width:min(440px,100%);padding:25px 28px;border:1px solid #d7d4b84d;background:rgba(15,25,30,.96);box-shadow:0 22px 90px #0008}
+    .inventory-heading{display:flex;align-items:center;justify-content:space-between}
+    .inventory-heading h2{margin:0;font-size:20px;letter-spacing:.1em}
+    .inventory-close{width:32px;height:32px;border:1px solid #d9d7bd3b;background:transparent;color:var(--cream);font-size:19px;cursor:pointer}
+    .inventory-list{display:grid;gap:8px;margin:18px 0 0;padding:0;list-style:none}
+    .inventory-row{display:grid;grid-template-columns:1fr auto;gap:2px 14px;padding:11px 12px;border:1px solid #d9d7bd20;background:#ffffff08}
+    .inventory-row strong{font-size:13px}
+    .inventory-row b{color:var(--lime);font:500 13px "DM Mono",monospace}
+    .inventory-row span{grid-column:1/-1;color:var(--muted);font-size:11px;line-height:1.6}
+    .inventory-foot{margin:15px 0 0;color:#d2d1c078;font:10px "DM Mono",monospace;text-align:right}
+    .objective{position:absolute;left:50%;top:25px;transform:translateX(-50%);font-size:11px;letter-spacing:.08em;color:#e3dfc9a8;white-space:nowrap}
+    .objective b{color:var(--lime);font-weight:500}
+    .interaction{position:absolute;left:50%;bottom:125px;transform:translateX(-50%);padding:8px 14px;background:#101b24dd;border:1px solid #d9d7bd3d;border-radius:3px;font-size:12px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none}
+    .interaction.show{opacity:1}
+    .interaction kbd{margin-right:6px;padding:2px 6px;color:#182127;background:var(--lime);border-radius:2px;font:500 10px "DM Mono",monospace}
+    .hint{position:absolute;bottom:25px;left:clamp(16px,4vw,56px);display:flex;gap:19px;color:#e3dfc987;font:10px "DM Mono",monospace;letter-spacing:.04em;pointer-events:none}
+    .hint kbd{padding:4px 6px;margin-right:4px;color:var(--cream);border:1px solid #f1ead53b;border-radius:3px}
+    .toast{position:absolute;left:50%;top:158px;transform:translate(-50%,-8px);padding:9px 15px;border:1px solid #d9d7bd35;border-radius:3px;background:#101b24e8;color:var(--cream);font-size:12px;white-space:nowrap;opacity:0;transition:.2s;pointer-events:none}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .panel{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(90deg,rgba(8,16,21,.35),rgba(8,16,21,.12) 55%,rgba(8,16,21,.44));}
+    .card{width:min(500px,calc(100% - 36px));padding:38px 42px 34px;border:1px solid #d7d4b836;background:rgba(15,25,30,.87);box-shadow:0 22px 90px #0005;backdrop-filter:blur(9px)}
+    .eyebrow{font:10px "DM Mono",monospace;letter-spacing:.24em;color:var(--lime);text-transform:uppercase}
+    h1{margin:13px 0 7px;font-size:clamp(32px,6vw,47px);line-height:1.25;letter-spacing:.08em}
+    .subtitle{margin:0;color:#d2d1c0a8;font-size:13px;line-height:1.8}
+    .rule{height:1px;margin:22px 0;background:#e5dfc522}
+    .brief{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;color:#d2d1c0cf;font-size:11px;line-height:1.7}
+    .brief b{color:var(--lime);font:11px "DM Mono",monospace;letter-spacing:.06em}
+    .start{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:25px;padding:14px 17px;border:0;background:var(--lime);color:#162027;text-align:left;font-weight:900;letter-spacing:.08em;cursor:pointer;transition:background .2s,transform .2s}
+    .start:hover{background:#d8eda0;transform:translateY(-2px)}
+    .start span:last-child{font:11px "DM Mono",monospace}
+    .footnote{margin-top:14px;text-align:center;color:#d2d1c065;font:9px "DM Mono",monospace;letter-spacing:.1em}
+    .hidden{display:none!important}
+    .touch{position:absolute;right:16px;bottom:19px;display:none;gap:8px}
+    .touch button{width:45px;height:45px;border:1px solid #f1ead545;border-radius:50%;background:#101b24c9;color:var(--cream);font:12px "DM Mono",monospace}
+    @media(max-width:700px){
+      .game{min-height:480px}.objective{top:78px;font-size:9px}.hud{top:116px}.inventory{top:auto;bottom:78px;left:16px;right:auto}.item{min-width:55px;padding:7px 8px}.item span{font-size:8px}
+      .meter{width:108px;padding:8px 9px}.hint{display:none}.interaction{bottom:140px}.touch{display:flex}.card{padding:29px 25px}.brief{gap:8px 12px;font-size:10px}
+    }
+    @media(max-width:430px){.brand strong{font-size:17px}.daybox{font-size:9px}.meter{width:98px}.inventory{gap:5px}.item{min-width:48px}.item b{font-size:13px}}
+  </style>
+</head>
+<body>
+  <main class="game" aria-label="ひとりぼっちの野営地">
+    <canvas id="world" aria-label="横スクロールのサバイバルゲーム"></canvas>
+    <div class="grain"></div>
+    <header class="topbar">
+      <div class="brand">FIELD NOTES / 001<strong>ひとりぼっちの野営地</strong></div>
+      <div class="objective">目標 <b>3日目の朝まで生き残る</b></div>
+      <div class="daybox"><b id="day">DAY 01</b><span class="clock" id="clock">06:00 AM</span></div>
+    </header>
+    <section class="hud" aria-label="ステータス">
+      <div class="meter hp"><div class="meter-label"><span>体力</span><span id="healthText">100</span></div><div class="bar"><i id="healthBar"></i></div></div>
+      <div class="meter"><div class="meter-label"><span>満腹度</span><span id="foodText">100</span></div><div class="bar"><i id="foodBar"></i></div></div>
+    </section>
+    <section class="inventory" aria-label="持ち物">
+      <div class="item"><span>木材</span><b id="woodCount">0</b></div>
+      <div class="item"><span>石</span><b id="stoneCount">0</b></div>
+      <div class="item"><span>ベリー</span><b id="berryCount">0</b></div>
+      <div class="item"><span>焚き火</span><b id="fireCount">0</b></div>
+    </section>
+    <button class="inventory-toggle" id="inventoryToggle" type="button">持ち物を見る <kbd>I</kbd></button>
+    <section class="inventory-panel hidden" id="inventoryPanel" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle" aria-hidden="true">
+      <div class="inventory-card">
+        <div class="inventory-heading"><h2 id="inventoryTitle">持ち物</h2><button class="inventory-close" id="inventoryClose" type="button" aria-label="閉じる">×</button></div>
+        <ul class="inventory-list">
+          <li class="inventory-row"><strong>木材</strong><b id="detailWood">0</b><span>森の木から採れる。焚き火を作る材料。</span></li>
+          <li class="inventory-row"><strong>石</strong><b id="detailStone">0</b><span>地面から拾える。焚き火を作る材料。</span></li>
+          <li class="inventory-row"><strong>ベリー</strong><b id="detailBerry">0</b><span>食べると満腹度が34、体力が最大25回復する。</span></li>
+          <li class="inventory-row"><strong>焚き火</strong><b id="detailFire">0</b><span>木材4と石2で作成。近くの影を遠ざける。</span></li>
+        </ul>
+        <p class="inventory-foot">I / ESC で閉じる</p>
+      </div>
+    </section>
+    <div class="interaction" id="interaction"><kbd>E</kbd><span id="interactionText"></span></div>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="hint"><span><kbd>A</kbd><kbd>D</kbd> 移動</span><span><kbd>SPACE</kbd> ジャンプ / 攻撃</span><span><kbd>E</kbd> 採集</span><span><kbd>F</kbd> 回復・食事</span><span><kbd>C</kbd> 焚き火を作る</span></div>
+    <div class="touch" aria-label="タッチ操作">
+      <button data-action="left" aria-label="左へ">◀</button><button data-action="right" aria-label="右へ">▶</button><button data-action="jump" aria-label="ジャンプ">↑</button><button data-action="interact" aria-label="採集">E</button>
+    </div>
+    <div class="panel" id="panel">
+      <div class="card">
+        <div class="eyebrow">A quiet place to begin</div>
+        <h1 id="panelTitle">森で、<br>朝を待つ。</h1>
+        <p class="subtitle" id="panelSubtitle">見知らぬ森にひとり。木と石を集め、焚き火を囲んで、三度の夜を越えよう。</p>
+        <div class="rule"></div>
+        <div class="brief">
+          <div><b>WASD / ← →</b><br>歩く、ジャンプ</div><div><b>E</b><br>近くの資源を採集</div>
+          <div><b>F</b><br>ベリーで体力+25・満腹度+34</div><div><b>I</b><br>持ち物と説明を見る</div>
+          <div><b>C</b><br>焚き火を作る<br>木材 4・石 2</div><div><b>SPACE</b><br>ジャンプ / 攻撃</div>
+          <div><b>夜に備える</b><br>焚き火は闇を遠ざける</div>
+        </div>
+        <button class="start" id="startButton"><span>森へ入る</span><span>BEGIN&nbsp; ↗</span></button>
+        <div class="footnote">NO MAP. NO WAY BACK. JUST KEEP GOING.</div>
+      </div>
+    </div>
+  </main>
+  <script>
+  (() => {
+    "use strict";
+    const canvas = document.getElementById("world");
+    const ctx = canvas.getContext("2d");
+    const $ = id => document.getElementById(id);
+    const W = 3600, DAY_LENGTH = 72, NIGHT_START = 42;
+    let width = 0, height = 0, scale = 1, camera = 0, last = 0, toastTimer = 0, GROUND = 435;
+    let running = false, ended = false, elapsed = 0, spawnTimer = 0, attackTimer = 0, hungerTimer = 0;
+    const keys = new Set(), particles = [];
+    const player = {x:180,y:GROUND-54,vx:0,vy:0,w:31,h:54,health:100,food:100,facing:1,onGround:true,attack:0,invuln:0};
+    const inventory = {wood:0,stone:0,berry:0,fire:0};
+    const objects = [];
+    const enemies = [];
+    const fires = [];
+    const rand = (a,b) => a + Math.random()*(b-a);
+    const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+    const dayNumber = () => Math.floor(elapsed / DAY_LENGTH) + 1;
+    const nightTime = () => elapsed % DAY_LENGTH >= NIGHT_START;
+    function makeWorld(){
+      objects.length = 0;
+      let x = 320;
+      while(x < W-150){
+        x += rand(110,205);
+        const kind = Math.random() < .61 ? "tree" : Math.random() < .58 ? "rock" : "berry";
+        objects.push({kind,x,y:GROUND,active:true,hp:kind==="tree"?2:1,seed:rand(0,999)});
+      }
+    }
+    function resize(){
+      const r=canvas.getBoundingClientRect(), d=Math.min(window.devicePixelRatio||1,2);
+      width=r.width;height=r.height;scale=d;
+      GROUND=clamp(height*.7,340,610);
+      if(player.onGround)player.y=GROUND-player.h;
+      canvas.width=Math.round(width*d);canvas.height=Math.round(height*d);
+      ctx.setTransform(d,0,0,d,0,0);
+    }
+    window.addEventListener("resize",resize);
+    function toast(text){
+      const el=$("toast"); el.textContent=text; el.classList.add("show");
+      clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1700);
+    }
+    function setInventoryOpen(open){
+      const panel=$("inventoryPanel");
+      panel.classList.toggle("hidden",!open);
+      panel.setAttribute("aria-hidden",String(!open));
+      if(open)$("inventoryClose").focus();
+      else $("inventoryToggle").focus();
+    }
+    $("inventoryToggle").addEventListener("click",()=>setInventoryOpen(true));
+    $("inventoryClose").addEventListener("click",()=>setInventoryOpen(false));
+    $("inventoryPanel").addEventListener("click",e=>{
+      if(e.target===$("inventoryPanel"))setInventoryOpen(false);
+    });
+    function isNearFire(x){return fires.some(f=>Math.abs(f.x-x)<145)}
+    function nearestObject(){
+      let best=null, distance=86;
+      for(const o of objects){if(!o.active)continue;const d=Math.abs(o.x-player.x);if(d<distance){best=o;distance=d}}
+      return best;
+    }
+    function interactLabel(o){
+      if(!o)return "";
+      return o.kind==="tree"?"木を切る":o.kind==="rock"?"石を拾う":"ベリーを摘む";
+    }
+    function interact(){
+      const o=nearestObject();
+      if(!o){toast("近くに採集できるものがない");return}
+      if(o.kind==="tree"){
+        o.hp--;
+        if(o.hp<=0){o.active=false;inventory.wood+=3;burst(o.x,GROUND-38,"#b9895f",8);toast("木材を3つ手に入れた")}
+        else{inventory.wood++;burst(o.x,GROUND-38,"#b9895f",5);toast("木材を1つ手に入れた")}
+      }else if(o.kind==="rock"){
+        o.active=false;inventory.stone+=2;burst(o.x,GROUND-12,"#b8b9a6",7);toast("石を2つ手に入れた");
+      }else{
+        o.active=false;inventory.berry+=2;burst(o.x,GROUND-26,"#cf7381",6);toast("ベリーを2つ手に入れた");
+      }
+      updateUI();
+    }
+    function eat(){
+      if(inventory.berry<1){toast("ベリーを持っていない");return}
+      if(player.food>=100&&player.health>=100){toast("体力もお腹もいっぱいだ");return}
+      const healed=Math.min(25,100-player.health);
+      inventory.berry--;player.food=Math.min(100,player.food+34);player.health=Math.min(100,player.health+25);
+      updateUI();toast(healed>0?"ベリーを食べた（体力+"+Math.ceil(healed)+"・満腹度+34）":"ベリーを食べた（満腹度+34）");
+    }
+    function buildFire(){
+      if(inventory.wood<4||inventory.stone<2){toast("材料が足りない（木材4・石2）");return}
+      inventory.wood-=4;inventory.stone-=2;inventory.fire++;
+      fires.push({x:player.x,y:GROUND,age:0});
+      burst(player.x,GROUND-14,"#ffad69",12);updateUI();toast("焚き火を作った。夜も少し安心だ");
+    }
+    function burst(x,y,color,count){
+      for(let i=0;i<count;i++)particles.push({x,y,vx:rand(-85,85),vy:rand(-140,-25),life:rand(.3,.8),max:.8,color});
+    }
+    function spawnEnemy(){
+      const side=player.x<W-350?1:-1;
+      enemies.push({x:clamp(player.x+side*rand(360,540),60,W-60),y:GROUND-36,hp:2,attack:0,phase:rand(0,6)});
+    }
+    function jump(){
+      if(player.onGround){player.vy=-390;player.onGround=false}
+    }
+    function attack(){
+      if(player.attack>0)return;
+      player.attack=.32;attackTimer=.32;
+      for(let i=enemies.length-1;i>=0;i--){
+        const e=enemies[i];
+        if(Math.abs(e.x-player.x)<76 && Math.sign(e.x-player.x||player.facing)===player.facing){
+          e.hp--;e.x+=player.facing*24;burst(e.x,e.y,"#d79b78",5);
+          if(e.hp<=0){enemies.splice(i,1);toast("影を追い払った")}
+        }
+      }
+    }
+    function handleSpace(){
+      if(!running||ended)return;
+      if(player.onGround)jump();
+      attack();
+    }
+    window.addEventListener("keydown",e=>{
+      const key=e.key.toLowerCase();
+      if([" ","arrowleft","arrowright","arrowup"].includes(key))e.preventDefault();
+      if(key==="escape"&& !$("inventoryPanel").classList.contains("hidden")){setInventoryOpen(false);return}
+      if(key==="i"&&!e.repeat&&running&&!ended){setInventoryOpen($("inventoryPanel").classList.contains("hidden"));return}
+      if(!$("inventoryPanel").classList.contains("hidden"))return;
+      if(key===" "&&!keys.has(key)){handleSpace()}
+      if(["e","f","c"].includes(key)&&!keys.has(key)){
+        if(key==="e")interact();if(key==="f")eat();if(key==="c")buildFire();
+      }
+      keys.add(key);
+    });
+    window.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
+    document.querySelectorAll(".touch button").forEach(button=>{
+      const action=button.dataset.action;
+      const down=e=>{e.preventDefault();if(action==="left")keys.add("arrowleft");if(action==="right")keys.add("arrowright");if(action==="jump")handleSpace();if(action==="interact")interact()};
+      const up=e=>{e.preventDefault();keys.delete("arrowleft");keys.delete("arrowright")};
+      button.addEventListener("pointerdown",down);button.addEventListener("pointerup",up);button.addEventListener("pointerleave",up);button.addEventListener("pointercancel",up);
+    });
+    function updateUI(){
+      $("healthText").textContent=Math.ceil(player.health);$("foodText").textContent=Math.ceil(player.food);
+      $("healthBar").style.width=player.health+"%";$("foodBar").style.width=player.food+"%";
+      $("woodCount").textContent=inventory.wood;$("stoneCount").textContent=inventory.stone;
+      $("berryCount").textContent=inventory.berry;$("fireCount").textContent=inventory.fire;
+      $("detailWood").textContent=inventory.wood;$("detailStone").textContent=inventory.stone;
+      $("detailBerry").textContent=inventory.berry;$("detailFire").textContent=inventory.fire;
+    }
+    function finish(won){
+      ended=true;running=false;$("panel").classList.remove("hidden");
+      $("panelTitle").innerHTML=won?"三つの夜を、<br>越えた。":"森に、<br>朝は来なかった。";
+      $("panelSubtitle").textContent=won?"火のそばで迎えた朝は、思ったよりあたたかかった。あなたはこの森で生き延びた。":"焚き火の火が消え、森は静かになった。もう一度、朝を目指そう。";
+      $("startButton").querySelector("span:first-child").textContent="もう一度";
+      $("startButton").querySelector("span:last-child").textContent="RESTART  ↗";
+    }
+    function update(dt){
+      if(!running||ended||!$("inventoryPanel").classList.contains("hidden"))return;
+      elapsed+=dt;
+      const day=dayNumber();
+      if(day>=4){finish(true);return}
+      player.food=Math.max(0,player.food-dt*.115);
+      hungerTimer+=dt;
+      if(hungerTimer>7){hungerTimer=0;if(player.food<=0){player.health=Math.max(0,player.health-3)}}
+      if(player.food<=0&&isNearFire(player.x))player.health=Math.max(0,player.health-dt*.15);
+      if(player.invuln>0)player.invuln-=dt;
+      if(player.attack>0)player.attack-=dt;
+      let direction=0;
+      if(keys.has("a")||keys.has("arrowleft"))direction--;
+      if(keys.has("d")||keys.has("arrowright"))direction++;
+      if(direction){player.facing=direction;player.vx=direction*205}else player.vx*=Math.pow(.001,dt);
+      player.x=clamp(player.x+player.vx*dt,25,W-25);
+      player.vy+=920*dt;player.y+=player.vy*dt;
+      if(player.y+player.h>GROUND){player.y=GROUND-player.h;player.vy=0;player.onGround=true}
+      if(nightTime()){
+        spawnTimer-=dt;
+        if(spawnTimer<=0){spawnTimer=rand(7,11);if(enemies.length<5&&!isNearFire(player.x))spawnEnemy()}
+      }else{spawnTimer=3;enemies.length=0}
+      for(const e of enemies){
+        e.phase+=dt*5;e.attack=Math.max(0,e.attack-dt);
+        if(Math.abs(e.x-player.x)>38)e.x+=Math.sign(player.x-e.x)*dt*(isNearFire(e.x)?33:58);
+        else if(e.attack<=0&&player.invuln<=0){e.attack=1.1;player.invuln=.9;player.health=Math.max(0,player.health-12);toast("影に噛まれた")}
+        if(isNearFire(e.x)){e.x+=Math.sign(e.x-player.x)*dt*95}
+      }
+      for(const f of fires)f.age+=dt;
+      for(let i=particles.length-1;i>=0;i--){
+        const p=particles[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=220*dt;if(p.life<=0)particles.splice(i,1);
+      }
+      if(player.health<=0){finish(false)}
+      camera=clamp(player.x-width*.42,0,W-width);
+      updateUI();
+      const obj=nearestObject(), label=interactLabel(obj);
+      $("interaction").classList.toggle("show",!!obj);
+      $("interactionText").textContent=label;
+      const inDay=elapsed%DAY_LENGTH;
+      const hour=6+Math.floor(inDay/3)%24;
+      const displayHour=((hour+11)%12)+1, minutes=Math.floor((inDay%3)*20);
+      $("day").textContent="DAY "+String(day).padStart(2,"0");
+      $("clock").textContent=String(displayHour).padStart(2,"0")+":"+String(minutes).padStart(2,"0")+(hour>=18||hour<6?" PM":" AM");
+    }
+    function polygon(points,color){
+      ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);
+      for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);
+      ctx.closePath();ctx.fill();
+    }
+    function drawSky(){
+      const phase=elapsed%DAY_LENGTH/DAY_LENGTH;
+      const dusk=nightTime()?clamp((elapsed%DAY_LENGTH-NIGHT_START)/9,0,1):clamp((elapsed%DAY_LENGTH-30)/12,0,1);
+      const top=ctx.createLinearGradient(0,0,0,height);
+      top.addColorStop(0,nightTime()?"#17283c":"#87a7a0");
+      top.addColorStop(.68,nightTime()?"#36475a":"#e6bb8b");
+      top.addColorStop(1,nightTime()?"#71816e":"#c3b48a");
+      ctx.fillStyle=top;ctx.fillRect(0,0,width,height);
+      const sunX=width*(.15+phase*.7),sunY=height*(.23+Math.sin(phase*Math.PI)*.13);
+      if(!nightTime()){
+        ctx.globalAlpha=.85;ctx.fillStyle="#f5dda5";ctx.beginPath();ctx.arc(sunX,sunY,27,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      }else{
+        ctx.fillStyle="#e7e4d0";ctx.beginPath();ctx.arc(width*.78,height*.18,17,0,Math.PI*2);ctx.fill();
+        for(let i=0;i<42;i++){let sx=(i*137+61)%width,sy=(i*71+27)%(height*.47);ctx.globalAlpha=.3+Math.sin(elapsed*1.4+i)*.18;ctx.fillStyle="#f3eed8";ctx.fillRect(sx,sy,2,2)}ctx.globalAlpha=1;
+      }
+      ctx.globalAlpha=.3+dusk*.42;
+      for(let i=0;i<6;i++){
+        const x=((i*260-camera*.12+((elapsed*5)%300))%(width+360))-180;
+        ctx.fillStyle="#f0ead9";ctx.beginPath();ctx.ellipse(x,height*.2+i%3*31,46,5,0,0,Math.PI*2);ctx.fill()
+      }
+      ctx.globalAlpha=1;
+      // Distant ridgelines
+      for(let layer=0;layer<2;layer++){
+        const base=height*(.68+layer*.07), offset=camera*(layer?.18:.1);
+        ctx.beginPath();ctx.moveTo(0,height);
+        for(let x=-40;x<=width+50;x+=50){const n=x+offset;const y=base-Math.sin(n*.004+layer)*24-Math.sin(n*.011)*11;ctx.lineTo(x,y)}
+        ctx.lineTo(width,height);ctx.closePath();ctx.fillStyle=layer?"#596c5e":"#778575";ctx.globalAlpha=nightTime()?.65:.72;ctx.fill();ctx.globalAlpha=1;
+      }
+    }
+    function drawGround(){
+      const gy=Math.min(height-55,GROUND);
+      const ground=ctx.createLinearGradient(0,gy,0,height);ground.addColorStop(0,"#59664c");ground.addColorStop(.12,"#454f3f");ground.addColorStop(1,"#303a32");
+      ctx.fillStyle=ground;ctx.fillRect(0,gy,width,height-gy);
+      ctx.fillStyle="#9c9b70";ctx.fillRect(0,gy,width,3);
+      for(let i=0;i<width/15+1;i++){const x=(i*37-camera*.8)%(width+40);ctx.globalAlpha=.25;ctx.fillStyle=i%2?"#c0ae79":"#a9a186";ctx.fillRect(x,gy+12+(i*19%48),2+(i%3),1)}ctx.globalAlpha=1;
+      // Foreground grass
+      ctx.strokeStyle="#adb07c";ctx.lineWidth=1;
+      for(let i=0;i<width/19+1;i++){const x=(i*41-camera*.95)%(width+30);ctx.beginPath();ctx.moveTo(x,gy+2);ctx.lineTo(x-3,gy-5-i%4);ctx.moveTo(x,gy+2);ctx.lineTo(x+4,gy-4-i%3);ctx.stroke()}
+    }
+    function drawTree(o){
+      const x=o.x-camera,y=GROUND;const sway=Math.sin(elapsed*1.1+o.seed)*1.5;
+      ctx.fillStyle="#202c29";ctx.fillRect(x-5,y-52,11,53);
+      ctx.fillStyle="#755f49";ctx.fillRect(x-7,y-51,14,50);ctx.fillStyle="#947353";ctx.fillRect(x-4,y-50,3,43);
+      const greens=["#334b40","#405a46","#4c6249"];ctx.fillStyle=greens[Math.floor(o.seed)%3];
+      ctx.beginPath();ctx.moveTo(x+sway,y-143);ctx.lineTo(x-39,y-83);ctx.lineTo(x-24,y-83);ctx.lineTo(x-49,y-49);ctx.lineTo(x+47,y-49);ctx.lineTo(x+24,y-84);ctx.lineTo(x+40,y-84);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#71805a";ctx.globalAlpha=.45;ctx.fillRect(x-20+sway,y-104,8,13);ctx.fillRect(x+11+sway,y-72,11,8);ctx.globalAlpha=1;
+      if(o.hp===1){ctx.strokeStyle="#d5b679";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-5,y-37);ctx.lineTo(x+5,y-29);ctx.stroke()}
+    }
+    function drawRock(o){
+      const x=o.x-camera,y=GROUND;
+      polygon([[x-23,y],[x-17,y-24],[x-4,y-32],[x+16,y-26],[x+25,y],[x-23,y]],"#73796e");
+      polygon([[x-16,y-4],[x-12,y-22],[x-2,y-26],[x+2,y-4]],"#a4a696");
+      ctx.strokeStyle="#545e57";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+8,y-20);ctx.lineTo(x+3,y-12);ctx.lineTo(x+13,y-7);ctx.stroke();
+    }
+    function drawBerry(o){
+      const x=o.x-camera,y=GROUND;
+      ctx.fillStyle="#33493a";ctx.beginPath();ctx.ellipse(x,y-13,20,13,0,Math.PI,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#52674a";ctx.beginPath();ctx.ellipse(x-10,y-16,10,8,-.4,0,Math.PI*2);ctx.ellipse(x+10,y-15,11,9,.4,0,Math.PI*2);ctx.fill();
+      for(const [bx,by] of [[-9,-15],[2,-21],[11,-12]]){ctx.fillStyle="#d37b83";ctx.beginPath();ctx.arc(x+bx,y+by,3,0,Math.PI*2);ctx.fill()}
+    }
+    function drawPlayer(){
+      const x=player.x-camera,y=player.y;
+      if(player.invuln>0&&Math.floor(elapsed*16)%2)return;
+      const step=Math.abs(player.vx)>20?Math.sin(elapsed*13)*3:0;
+      // Shadow and legs
+      ctx.globalAlpha=.25;ctx.fillStyle="#101714";ctx.beginPath();ctx.ellipse(x+2,GROUND+1,21,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.fillStyle="#29302c";ctx.fillRect(x-10,y+36+step,8,17);ctx.fillRect(x+2,y+36-step,8,17);
+      ctx.fillStyle="#92734d";ctx.fillRect(x-12,y+51+step,11,4);ctx.fillRect(x+1,y+51-step,11,4);
+      // Original trail fighter: layered teal tunic, ochre sash, and wrapped hands.
+      ctx.fillStyle="#294c4a";ctx.fillRect(x-14,y+16,28,25);
+      ctx.fillStyle="#38625b";ctx.fillRect(x-11,y+18,22,18);
+      ctx.fillStyle="#d0a75f";ctx.fillRect(x-13,y+34,26,5);ctx.fillRect(x+7,y+36,7,3);
+      ctx.fillStyle="#d5c8a7";ctx.fillRect(x-16,y+26,6,5);ctx.fillRect(x+10,y+26,6,5);
+      ctx.fillStyle="#c99570";ctx.fillRect(x-10,y+2,20,19);
+      ctx.fillStyle="#332f29";ctx.fillRect(x-11,y,22,7);ctx.fillRect(x-9,y-3,13,5);ctx.fillRect(x+4,y-5,7,4);
+      ctx.fillStyle="#332d29";ctx.fillRect(x+player.facing*5,y+10,2,2);
+      if(player.attack>0){
+        ctx.fillStyle="#38625b";ctx.fillRect(x+player.facing*7,y+21,player.facing*15,8);
+        ctx.fillStyle="#d5c8a7";ctx.fillRect(x+player.facing*20,y+21,player.facing*7,8);
+        ctx.fillStyle="#c99570";ctx.fillRect(x+player.facing*25,y+22,player.facing*6,6);
+        ctx.strokeStyle="#eadca5";ctx.globalAlpha=.6;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+player.facing*28,y+26,17,-1.1,.8);ctx.stroke();ctx.globalAlpha=1;
+      }
+    }
+    function drawEnemy(e){
+      const x=e.x-camera,y=GROUND-35+Math.sin(e.phase)*2;
+      ctx.globalAlpha=.88;ctx.fillStyle="#202833";ctx.beginPath();ctx.ellipse(x,y+18,17,19,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#353942";ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#de967a";ctx.fillRect(x-8,y-2,4,3);ctx.fillRect(x+4,y-2,4,3);
+      ctx.fillStyle="#171e25";ctx.fillRect(x-17,y+29,11,8);ctx.fillRect(x+6,y+29,11,8);
+      ctx.globalAlpha=1;
+    }
+    function drawFire(f){
+      const x=f.x-camera,y=GROUND;const flicker=Math.sin(elapsed*14+f.x)*3;
+      ctx.globalAlpha=.2;const glow=ctx.createRadialGradient(x,y-14,4,x,y-14,105);glow.addColorStop(0,"#ffb75c");glow.addColorStop(1,"#ffb75c00");ctx.fillStyle=glow;ctx.fillRect(x-110,y-125,220,220);ctx.globalAlpha=1;
+      ctx.strokeStyle="#654c37";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-13,y-4);ctx.lineTo(x+13,y-13);ctx.moveTo(x-12,y-13);ctx.lineTo(x+12,y-3);ctx.stroke();
+      ctx.fillStyle="#fa9d53";ctx.beginPath();ctx.moveTo(x,y-42-flicker);ctx.quadraticCurveTo(x-20,y-20,x-9,y-8);ctx.quadraticCurveTo(x-6,y-2,x,y-10);ctx.quadraticCurveTo(x+7,y-1,x+11,y-10);ctx.quadraticCurveTo(x+21,y-28,x,y-42-flicker);ctx.fill();
+      ctx.fillStyle="#ffe4a1";ctx.beginPath();ctx.moveTo(x,y-29-flicker);ctx.quadraticCurveTo(x-10,y-16,x-3,y-11);ctx.quadraticCurveTo(x+2,y-8,x+5,y-13);ctx.quadraticCurveTo(x+10,y-22,x,y-29-flicker);ctx.fill();
+    }
+    function draw(){
+      ctx.clearRect(0,0,width,height);drawSky();drawGround();
+      ctx.save();ctx.translate(0,0);
+      for(const o of objects){if(!o.active||o.x-camera < -100||o.x-camera>width+100)continue;if(o.kind==="tree")drawTree(o);else if(o.kind==="rock")drawRock(o);else drawBerry(o)}
+      for(const f of fires)drawFire(f);
+      for(const e of enemies)drawEnemy(e);
+      drawPlayer();
+      for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-camera,p.y,3,3)}ctx.globalAlpha=1;
+      ctx.restore();
+      if(nightTime()){
+        ctx.fillStyle="rgba(12,19,35,.26)";ctx.fillRect(0,0,width,height);
+        for(const f of fires){const x=f.x-camera;const g=ctx.createRadialGradient(x,GROUND-18,15,x,GROUND-18,180);g.addColorStop(0,"rgba(255,174,94,.17)");g.addColorStop(1,"rgba(255,174,94,0)");ctx.fillStyle=g;ctx.fillRect(x-180,GROUND-198,360,360)}
+      }
+    }
+    function loop(now){
+      const dt=Math.min((now-last)/1000||0,.04);last=now;update(dt);draw();requestAnimationFrame(loop);
+    }
+    $("startButton").addEventListener("click",()=>{
+      if(ended){
+        elapsed=0;spawnTimer=0;attackTimer=0;hungerTimer=0;player.x=180;player.y=GROUND-player.h;player.vx=0;player.vy=0;player.health=100;player.food=100;player.invuln=0;
+        Object.assign(inventory,{wood:0,stone:0,berry:0,fire:0});enemies.length=0;fires.length=0;particles.length=0;makeWorld();updateUI();ended=false;
+      }
+      running=true;$("panel").classList.add("hidden");$("startButton").blur();
+    });
+    makeWorld();resize();updateUI();requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
